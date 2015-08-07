@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title></title>
+	<style>
+	#container {
+		background-color: #eee;
+		width: 1200px;
+		height: 600px;
+	}
+
+	#map {
+		background-color: #ddd;
+		width: 800px;
+		height: 600px;
+	}
+
+	.tooltip {
+		position: absolute;
+		text-align: center;
+		width: 120px;
+		height: 22px;
+		padding-top: 8px;
+		padding-bottom: 5px;
+		font: 14px arial;
+		background: #fff;
+		border-radius: 6px;
+		visibility: hidden;
+	}
+	</style>
+</head>
+<body>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+
+	<div id="map" style="display:inline-block"></div>
+	<div id="bar" style="display:inline-block"></div>
+
+	<script>
+
+	function entry() {
+		var mapW = 800;
+		var mapH = 600;
+		var barW = 400;
+		var barH = 600;
+
+		var svg = d3.select("#map")
+			.append("svg")
+			.attr("width", mapW)
+			.attr("height", mapH);
+
+		var g = svg.append("g")
+			.attr("transform", "translate(-80, 40)");
+
+		var svg1 = d3.select("#bar")
+			.append("svg")
+			.attr("width", barW)
+			.attr("height", barH);
+
+		function drawMap() {
+			var proj = d3.geo.mercator()
+				.center([-100, 40])
+				// .scale(700)
+				.translate([mapW / 2, mapH / 2]);
+
+			var color = d3.scale.category20();
+
+			var tooltip = d3.select("#map")
+				.append("div")
+				.attr("class", "tooltip");
+
+			d3.json("map_usa.json", function(error, data) {
+				data = data.features;
+
+				var area = g.selectAll("path")
+					.data(data)
+					.enter()
+					.append("path")
+					.attr("d", d3.geo.path())
+					.attr("fill", function(d, i) {
+						return color(i);
+					})
+					.attr("stroke", "#fff")
+					.attr("stroke-width", "1px")
+					.attr("opacity", 0.3);
+
+				// area.append("title")
+				// 	.text(function(d) {
+				// 		return d.properties.name;
+				// 	});
+
+				area.on("mouseover", function(d) {
+						d3.select(this)
+							.transition()
+							.duration(200)
+							.attr("opacity", 1);
+
+						tooltip.style("visibility", "visible")
+							.text(d.properties.name);
+					})
+					.on("mousemove", function(d) {
+						tooltip.style("top", (d3.event.pageY + 16) + "px")
+							.style("left", (d3.event.pageX + 16) + "px");
+					})
+					.on("mouseout", function(d) {
+						area.transition()
+							.duration(200)
+							.attr("opacity", 0.3);
+
+						tooltip.style("visibility", "hidden");
+					});
+
+				area.on("click", function(d) {
+					drawBar();
+				});
+			});
+		}
+
+		function drawBar() {
+			d3.selectAll("rect").remove();
+			d3.selectAll("text").remove();
+
+			var g1 = svg1.append("g")
+				.attr("transform", "translate(20, 20)");
+
+			var g2 = svg1.append("g");
+
+			g2.append("text")
+				.text("Browser Usage per State")
+				.attr("x", 200)
+				.attr("y", 20);
+
+			g2.append("text")
+				.text("(million times / day)")
+				.attr("x", 240)
+				.attr("y", 40);
+
+			var data = [
+				{"brs": "chrome", "count": Math.round(Math.random() * 1000)},
+				{"brs": "firefox", "count": Math.round(Math.random() * 1000)},
+				{"brs": "other", "count": Math.round(Math.random() * 1000)}
+			];
+
+			var tooltip = d3.select("#bar")
+				.append("div")
+				.attr("class", "tooltip");
+
+			var bar = g1.selectAll("rect")
+				.data(data)
+				.enter()
+				.append("g");
+
+			bar.append("rect")
+				.attr("width", 30)
+				.attr("height", function(d) {
+					return d.count / 3;
+				})
+				.attr("x", function(d, i) {
+					return i * 40;
+				})
+				.attr("fill", "steelblue");
+
+			bar.append("text")
+				.text(function(d) {
+					return d.count;
+				})
+				.attr("x", function(d, i) {
+					return i * 40;
+				});
+
+			bar.on("mouseover", function(d) {
+				tooltip.style("visibility", "visible")
+					.style("background-color", "lightsteelblue")
+					.style("color", "white")
+					.text(d.brs);
+				})
+				.on("mousemove", function(d) {
+					tooltip.style("top", (d3.event.pageY + 16) + "px")
+						.style("left", (d3.event.pageX + 16) + "px");
+				})
+				.on("mouseout", function(d) {
+					tooltip.style("visibility", "hidden");
+				});
+		}
+
+		var mc = drawMap();
+	}
+
+	entry();
+
+	</script>
+</body>
+</html>
